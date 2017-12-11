@@ -11,8 +11,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 var users = [];
 
 function signup(name, email, password) {
-  //todo: check if user exists and throw if does
-  //node-localstorage
+  // console.log(email);
   users.push({ name, email, password });
   // LocalStorage["name"] = users;
 }
@@ -25,14 +24,23 @@ app.post("/signup", function(request, response) {
   var signupDetails = request.body;
   var userId = signupDetails.email;
   //1. we need to save this somewhere
-  console.log(signupDetails);
+  //console.log(signupDetails);
   //2. we need to check if the user already exists
   var LocalStorage = require("node-localstorage").LocalStorage;
   var localStorage = new LocalStorage("./scratch");
+  //localStorage.setItem("name", signupDetails.name);
   localStorage.setItem(userId, JSON.stringify(signupDetails));
-  console.log(localStorage.getItem(userId));
+  // console.log(localStorage.getItem("name"));
   //3. we cannot save the password, we need to save a one way hash of the password
 
+  var res = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    res.push(localStorage.key(i));
+  }
+  console.log(userId);
+  if (res.indexOf(userId) > 0) {
+    console.log(Error("user already exists"));
+  }
   //using bcrypt
 
   signup(signupDetails.name, signupDetails.email, signupDetails.password);
