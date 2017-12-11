@@ -12,17 +12,9 @@ var users = [];
 
 function signup(name, email, password) {
   //todo: check if user exists and throw if does
-
-  users.push(name);
-  var LocalStorage = require("node-localstorage").LocalStorage;
-  LocalStorage = new LocalStorage("./scratch");
-  // LocalStorage["name"] = users;
-  LocalStorage.setItem("name", JSON.stringify(users));
-  LocalStorage.setItem("password", password);
-  LocalStorage.setItem("name", name);
-  console.log(LocalStorage.getItem("name"));
-
   //node-localstorage
+  users.push({ name, email, password });
+  // LocalStorage["name"] = users;
 }
 
 function getUser(email, password) {
@@ -31,11 +23,16 @@ function getUser(email, password) {
 
 app.post("/signup", function(request, response) {
   var signupDetails = request.body;
+  var userId = signupDetails.email;
   //1. we need to save this somewhere
   console.log(signupDetails);
-
   //2. we need to check if the user already exists
+  var LocalStorage = require("node-localstorage").LocalStorage;
+  var localStorage = new LocalStorage("./scratch");
+  localStorage.setItem(userId, JSON.stringify(signupDetails));
+  console.log(localStorage.getItem(userId));
   //3. we cannot save the password, we need to save a one way hash of the password
+
   //using bcrypt
 
   signup(signupDetails.name, signupDetails.email, signupDetails.password);
