@@ -1,0 +1,1 @@
+{"name":"montshe","email":"mokgokongjohannes@gmail.com","passwordHash":"$2a$10$PI98q1hq/s8qHD1lQMEBKe6xPvYDDIGzyihfHhGOcMKG2bzpRz3UW"}
