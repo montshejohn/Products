@@ -1,0 +1,17 @@
+{
+    "name": "status-wave",
+    "version": "0.0.1",
+    "main": "index.js",
+    "scripts": {
+      "test": ""
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "express": "^4.16.2",
+      "qs": "^6.5.1",
+      "request": "^2.83.0"
+    },
+    "devDependencies": {},
+    "description": ""
+  }
