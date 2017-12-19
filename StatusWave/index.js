@@ -2,10 +2,53 @@ const express = require("express");
 const app = express();
 const qs = require("qs");
 const request = require("request");
-
-app.use(express.static('public'));
+const bodyParser = require('body-parser')
 
 var getRequestToken = require('./src/twitter/get-request-token.js');
+
+app.use(express.static('public'));
+app.use(bodyParser.urlencoded({extended:false}));
+
+var users = [];
+
+function signup(name,email,password){
+  //todo: check if user exists and throw if does
+  users.push({name, email, password});
+  //node-localstorage
+}
+
+function getUser(email, password){
+  //node-localstorage
+  return users.find((u) => u.email == email && u.password == password);
+}
+
+app.post("/signup", function(request,response){
+  var signupDetails = request.body;
+  //1. we need to save this somewhere
+  //2. we need to check if the user already exists
+  //3. we cannot save the password, we need to save a one way hash of the password
+  //using bcrypt
+
+  signup(signupDetails.name, signupDetails.email, signupDetails.password);
+
+  response.status(201).end();
+
+  users.push(signupDetails);
+});
+
+app.get("/login", function(request,response){
+  const email = request.query.email;
+  const password = request.query.password;
+
+  const user = getUser(email, password);
+
+  if (user){
+    response.status(200).end();
+  }else{
+    response.status(401).end();
+  }
+});
+
 
 const config = {
   consumerKey: "Rz63spEaepbrHThkMtr5TJgFj",
