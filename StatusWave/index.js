@@ -3,6 +3,8 @@ const app = express();
 const qs = require("qs");
 const request = require("request");
 
+app.use(express.static('public'));
+
 var getRequestToken = require('./src/twitter/get-request-token.js');
 
 const config = {
