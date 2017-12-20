@@ -2,29 +2,38 @@ const express = require("express");
 const app = express();
 const qs = require("qs");
 const request = require("request");
-const bodyParser = require('body-parser')
+const bodyParser = require("body-parser");
+var getRequestToken = require("./src/twitter/get-request-token.js");
 
-var getRequestToken = require('./src/twitter/get-request-token.js');
-
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({extended:false}));
+app.use(express.static("public"));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 var users = [];
 
-function signup(name,email,password){
+function signup(name, email, password) {
   //todo: check if user exists and throw if does
-  users.push({name, email, password});
+
+  users.push(name);
+  var LocalStorage = require("node-localstorage").LocalStorage;
+  LocalStorage = new LocalStorage("./scratch");
+  // LocalStorage["name"] = users;
+  LocalStorage.setItem("name", JSON.stringify(users));
+  LocalStorage.setItem("password", password);
+  LocalStorage.setItem("name", name);
+  console.log(LocalStorage.getItem("name"));
+
   //node-localstorage
 }
 
-function getUser(email, password){
-  //node-localstorage
-  return users.find((u) => u.email == email && u.password == password);
+function getUser(email, password) {
+  return users.find(u => u.email == email && u.password == password);
 }
 
-app.post("/signup", function(request,response){
+app.post("/signup", function(request, response) {
   var signupDetails = request.body;
   //1. we need to save this somewhere
+  console.log(signupDetails);
+
   //2. we need to check if the user already exists
   //3. we cannot save the password, we need to save a one way hash of the password
   //using bcrypt
@@ -36,24 +45,23 @@ app.post("/signup", function(request,response){
   users.push(signupDetails);
 });
 
-app.get("/login", function(request,response){
+app.get("/login", function(request, response) {
   const email = request.query.email;
   const password = request.query.password;
 
   const user = getUser(email, password);
 
-  if (user){
+  if (user) {
     response.status(200).end();
-  }else{
+  } else {
     response.status(401).end();
   }
 });
 
-
 const config = {
   consumerKey: "Rz63spEaepbrHThkMtr5TJgFj",
   consumerSecret: "1hir1CnQKcH5Ma27EvorqqvRI8vi5F1lgO3jbsTVgM70qB5YII"
-}
+};
 
 app.get("/authorize/twitter", (req, res) => {
   console.log("Requesting a refresh token from twitter");
@@ -70,10 +78,9 @@ app.get("/authorize/twitter", (req, res) => {
         data.oauth_token +
         "'>Authorize Twitter</a>"
     );
-  }
+  };
 
   getRequestToken(callback);
-
 });
 
 app.get("/twitter/callback", (req, res) => {
@@ -84,7 +91,7 @@ app.get("/twitter/callback", (req, res) => {
     tokenDetails.oauth_token,
     (err, data) => {
       if (err) {
-          console.log("error when getting access token", err);
+        console.log("error when getting access token", err);
         res.send(
           "<h1>Something went wrong while giving access, please try again.</h1>"
         );
@@ -93,7 +100,7 @@ app.get("/twitter/callback", (req, res) => {
 
         //tweet("Theo Just authorized the StatusWave app",data.oauth_token, data.oauth_token_secret);
 
-        res.json({success:true});
+        res.json({ success: true });
 
         res.send("<h1>congrats, you have authorized us</h1>");
       }
