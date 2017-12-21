@@ -4,20 +4,56 @@ const qs = require("qs");
 const request = require("request");
 const bodyParser = require("body-parser");
 var getRequestToken = require("./src/twitter/get-request-token.js");
+const bcrypt = require('bcryptjs');
+const config = require('./src/config');
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: false }));
 
-var users = [];
+
+var LocalStorage = require("node-localstorage").LocalStorage;
+var localStorage = new LocalStorage("./data");
 
 function signup(name, email, password) {
-  // console.log(email);
-  users.push({ name, email, password });
-  // LocalStorage["name"] = users;
+  //localStorage.setItem("name", signupDetails.name);
+  const userId = email.toLowerCase().trim();
+
+  var passwordHash = bcrypt.hashSync(password, config.salt);
+
+  var user = {name, email, passwordHash};
+  localStorage.setItem(userId, JSON.stringify(user));
 }
 
-function getUser(email, password) {
-  return users.find(u => u.email == email && u.password == password);
+function getTwitterTokenForUser(userId){
+  var user = JSON.parse(localStorage.getItem(userId));
+  return user.twitterToken;
+}
+
+function saveTokenToUser(userId, tokenDetails){
+  var user = JSON.parse(localStorage.getItem(userId));
+
+  const details = {"platform": "twitter", tokenDetails};
+
+  user.twitterToken = tokenDetails;
+
+  localStorage.setItem(userId, JSON.stringify(user));
+}
+
+function verifyUser(email, password) {
+
+  const userId = email.toLowerCase().trim();
+
+  var userString = localStorage.getItem(userId);
+
+  if (!userString){
+    return false;
+  }
+
+  const user = JSON.parse(userString);
+
+  var hash = bcrypt.hashSync(password, config.salt);
+
+  return user.passwordHash === hash;
 }
 
 app.post("/signup", function(request, response) {
@@ -26,18 +62,11 @@ app.post("/signup", function(request, response) {
   //1. we need to save this somewhere
   //console.log(signupDetails);
   //2. we need to check if the user already exists
-  var LocalStorage = require("node-localstorage").LocalStorage;
-  var localStorage = new LocalStorage("./scratch");
-  //localStorage.setItem("name", signupDetails.name);
-  localStorage.setItem(userId, JSON.stringify(signupDetails));
-  // console.log(localStorage.getItem("name"));
-  //3. we cannot save the password, we need to save a one way hash of the password
 
   var res = [];
   for (var i = 0; i < localStorage.length; i++) {
     res.push(localStorage.key(i));
   }
-  console.log(userId);
   if (res.indexOf(userId) > 0) {
     console.log(Error("user already exists"));
   }
@@ -47,45 +76,75 @@ app.post("/signup", function(request, response) {
 
   response.status(201).end();
 
-  users.push(signupDetails);
 });
 
-app.get("/login", function(request, response) {
-  const email = request.query.email;
-  const password = request.query.password;
+function authenticate(auth){
+  try {
+    var baseValue = auth.split(" ")[1];
 
-  const user = getUser(email, password);
+    var authString = Buffer.from(baseValue, 'base64').toString('ascii');
+    var userPasswordSplit = authString.split(":");
 
-  if (user) {
-    response.status(200).end();
-  } else {
-    response.status(401).end();
+    const email = userPasswordSplit[0];
+    const password = userPasswordSplit[1];
+
+    if (!verifyUser(email, password)) {
+      return null;
+    }
+
+    return email;
+
   }
+  catch(e){
+    return null;
+  }
+}
+
+app.post("/login", function(request, response) {
+  if (!authenticate(request.headers.authorization)) 
+ {
+    response.status(401).end(); 
+    return;
+ } 
+
+  response.status(200).end();
 });
 
-const config = {
-  consumerKey: "Rz63spEaepbrHThkMtr5TJgFj",
-  consumerSecret: "1hir1CnQKcH5Ma27EvorqqvRI8vi5F1lgO3jbsTVgM70qB5YII"
-};
+app.get("/authorize/twitter", (request, response) => {
+var userId = authenticate(request.headers.authorization);
+  if (!userId) 
+ {
+    response.status(401).end(); 
+    return;
+ } 
 
-app.get("/authorize/twitter", (req, res) => {
   console.log("Requesting a refresh token from twitter");
+
   const callback = (err, data) => {
     if (err) {
-      res.statusCode(500);
+      response.statusCode(500);
     }
-    console.log("Received refresh token from twitter", data);
-
     //TODO: Do not return html here, rather return just the request token
     // and it's the client's responsibility to do the redirect
-    res.send(
-      "<a href='https://api.twitter.com/oauth/authorize?oauth_token=" +
-        data.oauth_token +
-        "'>Authorize Twitter</a>"
-    );
+
+    response.send(data.oauth_token);
   };
 
-  getRequestToken(callback);
+  getRequestToken(callback, userId);
+});
+
+app.post("/message", (request,response) => {
+  var message = request.body.message;
+
+  var userId = authenticate(request.headers.authorization);
+  if (!userId) {
+    response.status(401).end();
+    return;
+  } 
+
+  var tokenDetails = getTwitterTokenForUser(userId);
+
+  tweet(message, tokenDetails.oauth_token, tokenDetails.oauth_token_secret);
 });
 
 app.get("/twitter/callback", (req, res) => {
@@ -95,6 +154,7 @@ app.get("/twitter/callback", (req, res) => {
     tokenDetails.oauth_verifier,
     tokenDetails.oauth_token,
     (err, data) => {
+      console.log('at data', data);
       if (err) {
         console.log("error when getting access token", err);
         res.send(
@@ -102,12 +162,11 @@ app.get("/twitter/callback", (req, res) => {
         );
       } else {
         console.log("the access token is: ", data);
+        saveTokenToUser(tokenDetails.userId, data);
 
         //tweet("Theo Just authorized the StatusWave app",data.oauth_token, data.oauth_token_secret);
 
-        res.json({ success: true });
-
-        res.send("<h1>congrats, you have authorized us</h1>");
+        res.send("<h1>congrats, you have authorized us</h1><a href='/post.html'>Post</a>");
       }
     }
   );
@@ -152,8 +211,6 @@ function tweet(message, token, tokenSecret) {
     token_secret: tokenSecret
   };
 
-  console.log("tweeting with ouath deatils", oauth);
-
   var options = {
     url: url,
     oauth: oauth,
@@ -167,5 +224,7 @@ function tweet(message, token, tokenSecret) {
     if (err) {
       console.log(err);
     }
+    //cb(err, httpResponse.body);
+
   });
 }

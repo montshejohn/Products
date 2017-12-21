@@ -13,21 +13,25 @@
             var email = document.getElementById("email").value;
             var password = document.getElementById("password").value;
 
-
-            var body = `email=${email}&password=${password}`;
+            const authToken = 'Basic '+ btoa(`${email}:${password}`);
 
             fetch("/login", {
                 method: 'post',
                 headers: {
-                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    'Authorization': authToken
                 },
-                body: body
+                //body: body
             })
                 .then(function (response) {
-                    console.log(response);
-                })
-                .then(function (response) {
-                    window.location = "/authorize/twitter";
+                    if (response.status !== 200){
+                        alert("Incorrect login details. Please try again.");
+                        return;
+                    }
+
+                    localStorage.setItem("token", authToken);
+
+                    window.location = "/authorize-twitter.html";
                     console.log('response', response);
                 })
                 .catch(function (error) {
