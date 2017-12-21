@@ -1,9 +1,11 @@
 const request = require("request");
 const qs = require("qs");
 
-function getRequestToken(cb) {
+const config = require('../config');
+
+function getRequestToken(cb, userId) {
   var oauth = {
-    callback: "http://localhost:3000/twitter/callback",
+    callback: 'http://localhost:3000/twitter/callback?userId=' + userId,
     consumer_key: config.consumerKey,
     consumer_secret: config.consumerSecret
   };
@@ -27,5 +29,3 @@ function getRequestToken(cb) {
 }
 
 module.exports = getRequestToken;
-
-
