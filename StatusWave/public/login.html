@@ -1,21 +1,53 @@
 <!DOCTYPE html>
-    <html lang="en">
+<html lang="en">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="ie=edge">
-        <title>Document</title>
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Login to Status Wave</title>
+    <script>
+        function login(event) {
+            event.preventDefault();
 
-    <body>
-        <form onsubmit="signUp(event);">
-            <label>Email</label>
-            <input id="email" type="email" placeholder="Enter email" />
-            <label>Password</label>
-            <input id="confirm_password" type="password" placeholder="Confirm password" />
-            <input type="submit" value="login" />
-        </form>
-    </body>
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
 
-    </html>
+
+            var body = `email=${email}&password=${password}`;
+
+            fetch("/login", {
+                method: 'post',
+                headers: {
+                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                },
+                body: body
+            })
+                .then(function (response) {
+                    console.log(response);
+                })
+                .then(function (response) {
+                    window.location = "/authorize/twitter";
+                    console.log('response', response);
+                })
+                .catch(function (error) {
+                    console.log('Request failed', error);
+                });
+            //event.preventDefault();
+
+        }
+    </script>
+</head>
+
+<body>
+    <form onsubmit="login(event);">
+
+        <label>Email</label>
+        <input id="email" type="email" placeholder="Enter email" />
+        <label>Password</label>
+        <input id="password" type="password" placeholder="Enter password" />
+        <input type="submit" value="Login" />
+    </form>
+</body>
+
+</html>
